@@ -3,36 +3,35 @@
 # Crap4r computes the CRAP metric for the methods in a given set of source files.
 # Visit http://github.com/kevinrutherford/crap4r/tree for docs etc.
 #
+# Author: Kevin Rutherford
+#
 
 require 'rubygems'
 require 'rcov'
 require 'ruby_parser'
-
 require 'roodi/core/visitable_sexp'
-
-class CrapFile
-  attr_accessor :name, :methods
-  
-  def initialize(filename)
-    @name = filename
-  end
-
-  def add_method(method)
-    @methods ||= []
-    @methods << method
-  end
-end
 
 class CrapMethod
   COMPLEXITY_NODE_TYPES = [:if, :while, :until, :for, :rescue, :case, :when, :and, :or]
 
-  attr_accessor :name, :start_line, :end_line, :complexity
+  attr_accessor :name, :filename, :start_line, :end_line, :complexity
 
-  def initialize(sexp)
+  def initialize(sexp, filename)
     @name = sexp[1]
+    @filename = filename
     @start_line = sexp.line
     @end_line = sexp.last.line
     @complexity = count_complexity(sexp)
+  end
+
+  def coverage
+    lines, marked_info, count_info = $rcov_code_coverage_analyzer.data(@filename)
+    covered_lines = 0
+    ((@start_line - 1)..(@end_line - 1)).each do |line|
+      covered_lines = covered_lines + 1 if marked_info[line]
+    end
+    total_lines = @end_line - @start_line + 1
+    covered_lines.to_f / total_lines.to_f
   end
 
   private
@@ -49,14 +48,13 @@ class CrapMethod
   end
 end
 
-@crap_files = []
+@crap_methods = []
 
-def process(sexp, crap_file)
+def process(sexp, filename)
   if [:defn, :defs].include?(sexp.first)
-    crap_method = CrapMethod.new(sexp)
-    crap_file.add_method(crap_method)
+    @crap_methods << CrapMethod.new(sexp, filename)
   end
-  sexp.children.each {|child| process(child, crap_file)}
+  sexp.children.each {|child| process(child, filename)}
 end
 
 
@@ -107,18 +105,13 @@ files = files.reject {|f|
 
 
 files.each do |filename|
-  crap_file = CrapFile.new(filename)
-  @crap_files << crap_file
   code = IO.readlines(filename).join
   sexp = RubyParser.new.parse(code, filename) || s()
-  process(sexp, crap_file)
+  process(sexp, filename)
 end
 
-@crap_files.each do |file|
-  puts file.name
-  file.methods.each do |method|
-    puts "  lines #{method.start_line}-#{method.end_line}. CC #{method.complexity}. #{method.name}"
-  end
+@crap_methods.each do |method|
+  puts "lines #{method.start_line}-#{method.end_line}. CC #{method.complexity}. Cov #{method.coverage}. #{method.filename}##{method.name}"
 end
 #puts "#{sexp.file}.#{sexp[1]} --> #{Cyc.new.cyc(sexp)}"
 
