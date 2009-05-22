@@ -9,24 +9,54 @@
 require 'rubygems'
 require 'rcov'
 require 'ruby_parser'
-require 'roodi/core'
-require 'roodi/checks'
 
-class Cyc < Roodi::Checks::CyclomaticComplexityCheck
-  def initialize
-    super(0)
+class CrapFile
+  attr_accessor :name, :methods
+  
+  def initialize(filename)
+    @name = filename
   end
 
-  def cyc(sexp)
-    count_complexity(sexp)
+  def add_method(method)
+    @methods ||= []
+    @methods << method
   end
 end
 
-def process(sexp)
-  if [:defn, :defs].include?(sexp.first)
-    puts "#{sexp.file}.#{sexp[1]} --> #{Cyc.new.cyc(sexp)}"
+class CrapMethod
+  COMPLEXITY_NODE_TYPES = [:if, :while, :until, :for, :rescue, :case, :when, :and, :or]
+
+  attr_accessor :name, :start_line, :end_line, :complexity
+
+  def initialize(sexp)
+    @name = sexp[1]
+    @start_line = sexp.line
+    @end_line = sexp.last.line
+    @complexity = count_complexity(sexp)
   end
-  sexp.children.each {|child| process(child)}
+
+  private
+
+  def count_complexity(node)
+    count_branches(node) + 1
+  end
+
+  def count_branches(node)
+    count = 0
+    count = count + 1 if COMPLEXITY_NODE_TYPES.include? node.node_type
+    node.children.each {|node| count += count_branches(node)}
+    count
+  end
+end
+
+@crap_files = []
+
+def process(sexp, crap_file)
+  if [:defn, :defs].include?(sexp.first)
+    crap_method = CrapMethod.new(sexp)
+    crap_file.add_method(crap_method)
+  end
+  sexp.children.each {|child| process(child, crap_file)}
 end
 
 
@@ -77,11 +107,19 @@ files = files.reject {|f|
 
 
 files.each do |filename|
+  crap_file = CrapFile.new(filename)
+  @crap_files << crap_file
   code = IO.readlines(filename).join
   sexp = RubyParser.new.parse(code, filename) || s()
-  process(sexp)
+  process(sexp, crap_file)
 end
 
-
+@crap_files.each do |file|
+  puts file.name
+  file.methods.each do |method|
+    puts "  lines #{method.start_line}-#{method.end_line}. CC #{method.complexity}. #{method.name}"
+  end
+end
+#puts "#{sexp.file}.#{sexp[1]} --> #{Cyc.new.cyc(sexp)}"
 
 
