@@ -1,1 +1,10 @@
 This project will contain a tool to compute the CRAP metric for Ruby code.
+
+This current version looks for all files called ./spec/**/*_spec.rb,
+runs them using Rspec, and reports the cyclomatic complexity for
+all methods defined in all files tested.
+
+Run it like this:
+
+  ruby -Ilib /path/to/crap4r
+
