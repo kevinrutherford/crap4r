@@ -33,6 +33,13 @@ class CrapMethod
     covered_lines.to_f / total_lines.to_f
   end
 
+  def crap
+#    CRAP(m) = comp(m)^2 * (1 Ð cov(m)/100)^3 + comp(m)
+    comp = @complexity
+    cov = coverage
+    comp ** 2 * (1 - cov) ** 3 + comp
+  end
+
   private
 
   def count_complexity(node)
@@ -109,8 +116,13 @@ files.each do |filename|
   process(sexp, filename)
 end
 
-@crap_methods.each do |method|
-  puts "lines #{method.start_line}-#{method.end_line}. CC #{method.complexity}. Cov #{method.coverage}. #{method.filename}##{method.name}"
+#@crap_methods.each do |method|
+#  puts "lines #{method.start_line}-#{method.end_line}. CC #{method.complexity}. Cov #{method.coverage}. CRAP #{method.crap}.  #{method.filename}##{method.name}"
+#end
+
+sorted_by_crap = @crap_methods.sort {|x,y| x.crap <=> y.crap }
+sorted_by_crap.each do |method|
+  puts "#{method.crap}  #{method.filename}##{method.name}"
 end
 #puts "#{sexp.file}.#{sexp[1]} --> #{Cyc.new.cyc(sexp)}"
 
