@@ -3,12 +3,12 @@
 # Crap4r computes the CRAP metric for the methods in a given set of source files.
 # Visit http://github.com/kevinrutherford/crap4r/tree for docs etc.
 #
-# Author: Kevin Rutherford
-#
 
 require 'rubygems'
 require 'rcov'
 require 'ruby_parser'
+
+require 'roodi/core/visitable_sexp'
 
 class CrapFile
   attr_accessor :name, :methods
