@@ -64,15 +64,10 @@ def process(sexp, filename)
   sexp.children.each {|child| process(child, filename)}
 end
 
-
-
 $rcov_code_coverage_analyzer ||= Rcov::CodeCoverageAnalyzer.new
-
 
 require 'spec/expectations'
 require 'spec/example'
-
-
 require 'spec/deprecation'
 require 'spec/ruby'
 require 'spec/dsl'
@@ -100,8 +95,6 @@ Dir['spec/**/*_spec.rb'].each {|spec| load spec}
 ::Spec::Runner::CommandLine.run
 
 
-#$rcov_code_coverage_analyzer.dump_coverage_info(formatters)
-
 files = $rcov_code_coverage_analyzer.analyzed_files
 
 require 'pathname'
@@ -117,14 +110,8 @@ files.each do |filename|
   process(sexp, filename)
 end
 
-#@crap_methods.each do |method|
-#  puts "lines #{method.start_line}-#{method.end_line}. CC #{method.complexity}. Cov #{method.coverage}. CRAP #{method.crap}.  #{method.filename}##{method.name}"
-#end
-
 sorted_by_crap = @crap_methods.sort {|x,y| x.crap <=> y.crap }
 sorted_by_crap.each do |method|
-  puts "#{method.crap}  #{method.filename}##{method.name}"
+  crapness = "%5.2f" % method.crap
+  puts "#{crapness}  #{method.filename}##{method.name}"
 end
-#puts "#{sexp.file}.#{sexp[1]} --> #{Cyc.new.cyc(sexp)}"
-
-
